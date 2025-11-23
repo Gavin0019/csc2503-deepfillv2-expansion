@@ -5,6 +5,10 @@ checkpoints/
 tb_logs/
 node_modules/
 
+# Dataset (too large for git)
+data/
+weights/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

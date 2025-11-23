@@ -1,0 +1,68 @@
+# Outpainting Training Configuration
+# ===================================
+# Fine-tune from pretrained Places2 model for outpainting task
+
+# Resume from pretrained model (recommended for faster convergence)
+# Download pretrained weights first - see pretrained/README.md
+model_restore: 'weights/states_pt_places2.pth'  # Fine-tune from Places2 pretrained
+
+# Dataloading
+dataset_path: '/path/to/places365'  # Update this to your dataset path
+scan_subdirs: True
+random_crop: True  # Important for Places365 (images vary in size)
+random_horizontal_flip: True
+batch_size: 16
+num_workers: 4
+
+# Outpainting specific settings
+use_outpaint_dataset: False  # If True, use OutpaintingDataset; if False, generate masks in training loop
+outpaint_ratio: 1.0          # 1.0 = pure outpainting, 0.5 = mixed with inpainting, 0.0 = pure inpainting
+
+# Outpainting mask parameters (for mask generation)
+min_crop_ratio: 0.5   # Minimum ratio of original image to keep (0.5 = expand by 50% on each side)
+max_crop_ratio: 0.8   # Maximum ratio of original image to keep
+
+# Also keep inpainting mask settings for mixed training
+height: 128
+width: 128
+max_delta_height: 32
+max_delta_width: 32
+vertical_margin: 0
+horizontal_margin: 0
+
+# Training
+tb_logging: True
+log_dir: 'tb_logs/outpaint/exp0'
+checkpoint_dir: 'checkpoints/outpaint/exp0'
+
+use_cuda_if_available: True
+random_seed: 42
+
+# Learning rate (lower for fine-tuning from pretrained)
+g_lr: 0.00005   # Half of original 0.0001 for fine-tuning
+g_beta1: 0.5
+g_beta2: 0.999
+
+d_lr: 0.00005   # Half of original 0.0001 for fine-tuning
+d_beta1: 0.5
+d_beta2: 0.999
+
+max_iters: 500000  # Fewer iterations needed when fine-tuning
+
+# Logging
+viz_max_out: 10
+print_iter: 100
+save_checkpoint_iter: 1000
+save_imgs_to_tb_iter: 500
+save_imgs_to_disc_iter: 1000
+save_cp_backup_iter: 10000
+
+# Image shape
+img_shapes: [256, 256, 3]
+
+# Loss
+gan_loss: 'hinge'
+gan_loss_alpha: 1.0
+
+ae_loss: True
+l1_loss_alpha: 1.0

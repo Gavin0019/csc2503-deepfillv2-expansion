@@ -191,6 +191,130 @@ def brush_stroke_mask(config):
     return torch.Tensor(mask)
 
 
+##############################################################################
+# Outpainting Mask Generation
+##############################################################################
+
+def outpaint_mask_all_sides(config, expand_ratio=None, min_ratio=0.1, max_ratio=0.3):
+    """Generate mask for outpainting in all directions.
+
+    The mask indicates where the model should generate new content (mask=1).
+    The center region contains the original image (mask=0).
+
+    Args:
+        config: config object with img_shapes [H, W, C]
+        expand_ratio: fixed expansion ratio, or None for random
+        min_ratio: minimum expansion ratio (used if expand_ratio is None)
+        max_ratio: maximum expansion ratio (used if expand_ratio is None)
+
+    Returns:
+        torch.Tensor: mask [1, 1, H, W] where 1=outpaint region, 0=known region
+        tuple: (pad_top, pad_bottom, pad_left, pad_right) padding amounts in pixels
+    """
+    H, W, _ = config.img_shapes
+    mask = torch.ones((1, 1, H, W), dtype=torch.float32)
+
+    if expand_ratio is None:
+        # Random expansion ratio for each side
+        ratio_top = np.random.uniform(min_ratio, max_ratio)
+        ratio_bottom = np.random.uniform(min_ratio, max_ratio)
+        ratio_left = np.random.uniform(min_ratio, max_ratio)
+        ratio_right = np.random.uniform(min_ratio, max_ratio)
+    else:
+        ratio_top = ratio_bottom = ratio_left = ratio_right = expand_ratio
+
+    pad_top = int(H * ratio_top)
+    pad_bottom = int(H * ratio_bottom)
+    pad_left = int(W * ratio_left)
+    pad_right = int(W * ratio_right)
+
+    # Ensure we have at least some center region
+    inner_h = H - pad_top - pad_bottom
+    inner_w = W - pad_left - pad_right
+
+    if inner_h < 32 or inner_w < 32:
+        # Fallback to symmetric 25% padding
+        pad_top = pad_bottom = H // 4
+        pad_left = pad_right = W // 4
+
+    # Center region is known (mask=0)
+    mask[:, :, pad_top:H-pad_bottom, pad_left:W-pad_right] = 0.
+
+    return mask, (pad_top, pad_bottom, pad_left, pad_right)
+
+
+def outpaint_mask_random_sides(config, min_sides=1, max_sides=4,
+                                min_ratio=0.15, max_ratio=0.35):
+    """Generate mask for outpainting on random subset of sides.
+
+    Useful for training the model to handle various outpainting scenarios.
+
+    Args:
+        config: config object with img_shapes [H, W, C]
+        min_sides: minimum number of sides to expand
+        max_sides: maximum number of sides to expand
+        min_ratio: minimum expansion ratio per side
+        max_ratio: maximum expansion ratio per side
+
+    Returns:
+        torch.Tensor: mask [1, 1, H, W] where 1=outpaint region
+        dict: info about which sides were expanded
+    """
+    H, W, _ = config.img_shapes
+    mask = torch.zeros((1, 1, H, W), dtype=torch.float32)
+
+    # Randomly select which sides to expand
+    sides = ['top', 'bottom', 'left', 'right']
+    num_sides = np.random.randint(min_sides, max_sides + 1)
+    selected_sides = np.random.choice(sides, size=num_sides, replace=False)
+
+    expansion_info = {side: 0 for side in sides}
+
+    for side in selected_sides:
+        ratio = np.random.uniform(min_ratio, max_ratio)
+
+        if side == 'top':
+            pad = int(H * ratio)
+            mask[:, :, :pad, :] = 1.
+            expansion_info['top'] = pad
+        elif side == 'bottom':
+            pad = int(H * ratio)
+            mask[:, :, H-pad:, :] = 1.
+            expansion_info['bottom'] = pad
+        elif side == 'left':
+            pad = int(W * ratio)
+            mask[:, :, :, :pad] = 1.
+            expansion_info['left'] = pad
+        elif side == 'right':
+            pad = int(W * ratio)
+            mask[:, :, :, W-pad:] = 1.
+            expansion_info['right'] = pad
+
+    return mask, expansion_info
+
+
+def outpaint_mask_fixed(img_shapes, pad_top=0, pad_bottom=0, pad_left=0, pad_right=0):
+    """Generate outpainting mask with fixed padding amounts.
+
+    Useful for inference when you know exactly how much to expand.
+
+    Args:
+        img_shapes: [H, W, C] target image shape
+        pad_top, pad_bottom, pad_left, pad_right: padding in pixels
+
+    Returns:
+        torch.Tensor: mask [1, 1, H, W]
+    """
+    H, W = img_shapes[0], img_shapes[1]
+    mask = torch.ones((1, 1, H, W), dtype=torch.float32)
+
+    # Center region is known (mask=0)
+    if H - pad_top - pad_bottom > 0 and W - pad_left - pad_right > 0:
+        mask[:, :, pad_top:H-pad_bottom, pad_left:W-pad_right] = 0.
+
+    return mask
+
+
 def test_contextual_attention(imageA, imageB, contextual_attention):
     """Test contextual attention layer with 3-channel image input
     (instead of n-channel feature).
