@@ -30,13 +30,13 @@ def main():
 
     args = parser.parse_args()
 
-    # Initialize metrics (data_range=1.0 for normalized [0,1] images)
-    psnr = PeakSignalNoiseRatio(data_range=1.0)
-    ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
-
     # Load model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
+
+    # Initialize metrics (data_range=1.0 for normalized [0,1] images)
+    psnr = PeakSignalNoiseRatio(data_range=1.0).to(device)
+    ssim = StructuralSimilarityIndexMeasure(data_range=1.0).to(device)
 
     # Determine model type from checkpoint
     checkpoint_data = torch.load(args.checkpoint, map_location=device)
