@@ -30,9 +30,9 @@ def main():
 
     args = parser.parse_args()
 
-    # Initialize metrics
-    psnr = PeakSignalNoiseRatio()
-    ssim = StructuralSimilarityIndexMeasure()
+    # Initialize metrics (data_range=1.0 for normalized [0,1] images)
+    psnr = PeakSignalNoiseRatio(data_range=1.0)
+    ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
 
     # Load model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
