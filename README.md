@@ -211,46 +211,6 @@ pt_places2:
   return_vals: [inpainted, stage1]
 ```
 
-## Project Structure
-
-```
-deepfillv2-pytorch/
-├── model/
-│   ├── networks.py          # PyTorch-native networks
-│   ├── networks_tf.py       # TensorFlow-compatible networks
-│   └── losses.py            # Loss functions
-├── utils/
-│   ├── data.py              # Dataset loaders
-│   ├── misc.py              # Utility functions
-│   └── app_utils.py         # Web app utilities
-├── configs/
-│   ├── train.yaml           # Inpainting training config
-│   └── train_outpaint.yaml  # Outpainting training config
-├── app/
-│   └── frontend/            # React web interface
-├── test.py                  # Basic inpainting test
-├── test_inpaint_auto.py     # Automatic mask generation
-├── test_outpaint.py         # Outpainting test
-├── validate.py              # Validation metrics
-├── train.py                 # Train inpainting
-├── train_outpaint.py        # Train outpainting
-└── app.py                   # Web application
-```
-
-## Model Architectures
-
-This repository provides two network implementations:
-
-1. **`networks_tf.py`**: TensorFlow-compatible implementation
-   - Use with converted official weights
-   - Maintains compatibility with original TF implementation
-
-2. **`networks.py`**: PyTorch-native implementation
-   - Optimized for PyTorch
-   - Fine-tuned weights available
-
-Both use the same gated convolution architecture from the DeepFillv2 paper.
-
 ## Examples
 
 ### Inpainting Results
@@ -264,61 +224,6 @@ Input → Masked → Inpainted:
 Original → Outpainted (25% expansion):
 
 *Add your outpainting examples here*
-
-## Advanced Usage
-
-### Jupyter Notebook
-
-Interactive examples in `test.ipynb`:
-- Load and test models
-- Visualize results
-- Experiment with parameters
-
-### Custom Datasets
-
-For training on custom datasets:
-
-```python
-from utils.data import InpaintDataset
-
-dataset = InpaintDataset(
-    image_dir='path/to/images',
-    mask_dir='path/to/masks',
-    img_size=256
-)
-```
-
-### API Usage
-
-```python
-from model import load_model
-from PIL import Image
-import torch
-
-# Load model
-generator = load_model('pretrained/states_pt_places2.pth')
-
-# Prepare inputs
-image = Image.open('input.jpg')
-mask = Image.open('mask.png')
-
-# Run inference
-with torch.inference_mode():
-    output = generator(image, mask)
-```
-
-## Requirements
-
-- Python 3.7+
-- PyTorch 1.9+
-- torchvision
-- numpy
-- Pillow
-- opencv-python (for automatic mask generation)
-- pyyaml
-- tensorboard (for training)
-- lpips, torchmetrics (for validation)
-- fastapi, uvicorn (for web interface)
 
 ## Citation
 
