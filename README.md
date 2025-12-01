@@ -18,7 +18,7 @@ A PyTorch implementation of **Free-Form Image Inpainting with Gated Convolution*
 ```bash
 # Clone the repository
 git clone https://github.com/Gavin0019/csc2503-deepfillv2-expansion.git
-cd deepfillv2-pytorch
+cd csc2503-deepfillv2-expansion
 
 # (Recommended) Create and activate a virtual environment / conda env
 # python -m venv .venv
