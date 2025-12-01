@@ -62,14 +62,6 @@ Save as: pretrained/states_softmask_inpaint.pth
 
 ## Usage
 
-### Basic Inpainting
-
-```bash
-# Standard inpainting with a mask
-python test.py --image input.jpg --mask mask.png --out output.png \
-    --checkpoint pretrained/states_pt_places2.pth
-```
-
 ### Soft-Mask Inpainting
 
 ```bash
