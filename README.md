@@ -70,15 +70,37 @@ python test.py --image input.jpg --mask mask.png --out output.png \
     --checkpoint pretrained/states_pt_places2.pth
 ```
 
+### Outpainting
+
+Extend images beyond their original boundaries:
+
+```bash
+# Expand by 25% on all sides (default)
+python test_outpaint.py --image input.jpg \
+    --checkpoint pretrained/states_outpaint_places365_50k.pth \
+    --out output.png
+
+# Custom expansion ratio
+python test_outpaint.py --image input.jpg \
+    --checkpoint pretrained/states_outpaint_places365_50k.pth \
+    --expand_ratio 0.5
+
+# Explicit padding (pixels)
+python test_outpaint.py --image input.jpg \
+    --checkpoint pretrained/states_outpaint_places365_50k.pth \
+    --pad_top 100 --pad_bottom 100 --pad_left 150 --pad_right 150
+
+# Save intermediate stages
+python test_outpaint.py --image input.jpg \
+    --checkpoint pretrained/states_outpaint_places365_50k.pth \
+    --save_stages
+```
+
 ### Automatic Inpainting
 
 Automatically detect edges and generate masks using Canny edge detection:
 
 ```bash
-# Basic automatic mask generation
-python test_inpaint_auto.py --image input.jpg \
-    --checkpoint pretrained/states_pt_places2.pth
-
 # Custom Canny parameters
 python test_inpaint_auto.py --image input.jpg \
     --checkpoint pretrained/states_pt_places2.pth \
@@ -103,31 +125,6 @@ python test_inpaint_auto.py --image input.jpg \
 - `--flood_fill`: Enable flood fill to create connected regions
 - `--seed_x`, `--seed_y`: Seed point for flood fill (default: center)
 
-### Outpainting
-
-Extend images beyond their original boundaries:
-
-```bash
-# Expand by 25% on all sides (default)
-python test_outpaint.py --image input.jpg \
-    --checkpoint pretrained/states_pt_places2.pth \
-    --out output.png
-
-# Custom expansion ratio
-python test_outpaint.py --image input.jpg \
-    --checkpoint pretrained/states_pt_places2.pth \
-    --expand_ratio 0.5
-
-# Explicit padding (pixels)
-python test_outpaint.py --image input.jpg \
-    --checkpoint pretrained/states_pt_places2.pth \
-    --pad_top 100 --pad_bottom 100 --pad_left 150 --pad_right 150
-
-# Save intermediate stages
-python test_outpaint.py --image input.jpg \
-    --checkpoint pretrained/states_pt_places2.pth \
-    --save_stages
-```
 
 ## Dataset Setup
 
