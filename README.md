@@ -255,9 +255,10 @@ Results appear below the canvas.
 
 Input → Masked → Inpainted:
 
-<img src="examples/inpaint/case1.png" width="250"/>
-<img src="examples/inpaint/case1_masked.png" width="250"/>
-<img src="examples/inpaint/case1_out.png" width="250"/>
+| Input | Masked | Inpainted |
+|-------|--------|-----------|
+| <img src="examples/inpaint/case1.png" width="250"/> | <img src="examples/inpaint/case1_masked.png" width="250"/> | <img src="examples/inpaint/case1_out.png" width="250"/> |
+
 
 ### Outpainting Results
 
