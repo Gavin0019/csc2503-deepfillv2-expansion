@@ -49,13 +49,13 @@ We provide our fine-tuned outpainting checkpoint (trained for 20–50k iteration
 #### 1. Outpainting Model (ours)
 Fine-tuned for 20–50k steps on a 50k-image Places365 subset using border expansion masks.
 
-- **Download (Google Drive):** <https://drive.google.com/file/d/1sk4nfm2WC0JUzJA4kMk1q-a6RiMclQDn/view?usp=sharing>
+- **Download (Google Drive):** [Outpainting Checkpoint](https://drive.google.com/file/d/1sk4nfm2WC0JUzJA4kMk1q-a6RiMclQDn/view?usp=sharing)
 Save as: pretrained/states_outpaint_places365_50k.pth
 
 #### 2. Soft-mask Inpainting Model (ours)
 Trained using blurred α-masks and soft compositing to produce smoother interior inpainting boundaries.
 
-- **Download (Google Drive):** <https://drive.google.com/file/d/1iB0oZvlGhRIDv-_RGlWt0idABAHw0fQB/view?usp=sharing>
+- **Download (Google Drive):** [Soft-mask Inpainting Checkpoint](https://drive.google.com/file/d/1iB0oZvlGhRIDv-_RGlWt0idABAHw0fQB/view?usp=sharing)
 
 Save as: pretrained/states_softmask_inpaint.pth
 
