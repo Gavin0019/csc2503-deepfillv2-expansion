@@ -1,5 +1,4 @@
 # This repo
-*.pth
 tmp
 checkpoints/
 tb_logs/

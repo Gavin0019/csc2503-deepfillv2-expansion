@@ -1,22 +1,19 @@
 """
-Automatic inpainting with edge detection.
+Automatic inpainting with Canny edge detection.
 
-Automatically detects edges/objects and generates masks for inpainting.
+Automatically detects edges and generates masks for inpainting.
 
 Usage:
-    # Canny edge detection (default)
+    # Basic Canny edge detection
     python test_inpaint_auto.py --image input.jpg --checkpoint pretrained/states_pt_places2.pth
 
     # With custom parameters
     python test_inpaint_auto.py --image input.jpg --checkpoint states.pth \
-        --method canny --canny_low 50 --canny_high 150 --dilate_iter 3
+        --canny_low 50 --canny_high 150 --dilate_iter 3
 
-    # GrabCut segmentation (removes foreground objects)
-    python test_inpaint_auto.py --image input.jpg --checkpoint states.pth --method grabcut
-
-    # Threshold-based
+    # Canny with flood fill (creates connected regions)
     python test_inpaint_auto.py --image input.jpg --checkpoint states.pth \
-        --method threshold --threshold 100
+        --flood_fill --seed_x 256 --seed_y 256
 """
 
 import argparse
@@ -27,14 +24,13 @@ import torch
 import torchvision.transforms as T
 
 
-def generate_auto_mask(image, method='canny', **kwargs):
+def generate_auto_mask(image, **kwargs):
     """
-    Generate inpainting mask automatically using edge detection.
+    Generate inpainting mask automatically using Canny edge detection.
 
     Args:
         image: PIL Image
-        method: 'canny', 'grabcut', or 'threshold'
-        **kwargs: Method-specific parameters
+        **kwargs: Canny-specific parameters
 
     Returns:
         mask: torch.Tensor (1, 1, H, W), 1=inpaint, 0=keep
@@ -42,46 +38,36 @@ def generate_auto_mask(image, method='canny', **kwargs):
     img_np = np.array(image)
     h, w = img_np.shape[:2]
 
-    if method == 'canny':
-        # Edge detection - finds edges in the image
-        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-        edges = cv2.Canny(gray,
-                         kwargs.get('threshold1', 100),
-                         kwargs.get('threshold2', 200))
+    # Edge detection - finds edges in the image
+    gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+    edges = cv2.Canny(gray,
+                     kwargs.get('threshold1', 100),
+                     kwargs.get('threshold2', 200))
 
-        # Dilate edges to create fillable regions
-        kernel_size = kwargs.get('kernel_size', 5)
-        iterations = kwargs.get('iterations', 2)
-        kernel = np.ones((kernel_size, kernel_size), np.uint8)
-        mask = cv2.dilate(edges, kernel, iterations=iterations)
+    # Dilate edges to create fillable regions
+    kernel_size = kwargs.get('kernel_size', 5)
+    iterations = kwargs.get('iterations', 2)
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    mask = cv2.dilate(edges, kernel, iterations=iterations)
 
-    elif method == 'grabcut':
-        # Foreground/background segmentation
-        # Removes objects in the center, keeps background
-        mask_gc = np.zeros(img_np.shape[:2], np.uint8)
+    # Apply flood fill if requested
+    if kwargs.get('flood_fill', False):
+        # Start flood fill from center point
+        seed_point = kwargs.get('seed_point', (w // 2, h // 2))
+        mask_copy = mask.copy()
 
-        # Define rectangle around region of interest
-        margin = kwargs.get('margin', 50)
-        rect = (margin, margin, w - margin, h - margin)
+        # Invert mask for flood fill (fill non-edge regions)
+        mask_inv = cv2.bitwise_not(mask_copy)
 
-        bgdModel = np.zeros((1, 65), np.float64)
-        fgdModel = np.zeros((1, 65), np.float64)
+        # Create a slightly larger image for flood fill
+        h_ff, w_ff = mask_inv.shape
+        mask_floodfill = np.zeros((h_ff + 2, w_ff + 2), np.uint8)
 
-        cv2.grabCut(img_np, mask_gc, rect, bgdModel, fgdModel,
-                   kwargs.get('iterations', 5), cv2.GC_INIT_WITH_RECT)
+        # Flood fill from seed point
+        cv2.floodFill(mask_inv, mask_floodfill, seed_point, 255)
 
-        # Mask: 1 for probable/definite foreground (objects to remove)
-        mask = np.where((mask_gc == 2) | (mask_gc == 0), 0, 1).astype('uint8') * 255
-
-    elif method == 'threshold':
-        # Simple intensity-based thresholding
-        # Removes bright or dark regions
-        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-        threshold = kwargs.get('threshold', 127)
-        _, mask = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
-
-    else:
-        raise ValueError(f"Unknown method: {method}")
+        # Invert to get the filled region as the mask
+        mask = cv2.bitwise_not(mask_inv)
 
     # Convert to torch tensor (1, 1, H, W)
     mask_tensor = torch.from_numpy(mask).float() / 255.0
@@ -91,7 +77,7 @@ def generate_auto_mask(image, method='canny', **kwargs):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Automatic inpainting with edge detection')
+    parser = argparse.ArgumentParser(description='Automatic inpainting with Canny edge detection')
     parser.add_argument("--image", type=str, required=True,
                         help="Path to input image")
     parser.add_argument("--out", type=str, default=None,
@@ -99,11 +85,6 @@ def main():
     parser.add_argument("--checkpoint", type=str,
                         default="pretrained/states_pt_places2.pth",
                         help="Path to checkpoint file")
-
-    # Mask generation method
-    parser.add_argument("--method", type=str, default='canny',
-                        choices=['canny', 'grabcut', 'threshold'],
-                        help="Auto mask generation method")
 
     # Canny edge detection parameters
     parser.add_argument("--canny_low", type=int, default=100,
@@ -114,16 +95,12 @@ def main():
                         help="Dilation kernel size (default: 5)")
     parser.add_argument("--dilate_iter", type=int, default=2,
                         help="Dilation iterations (default: 2)")
-
-    # GrabCut parameters
-    parser.add_argument("--grabcut_margin", type=int, default=50,
-                        help="GrabCut margin from edges (default: 50)")
-    parser.add_argument("--grabcut_iter", type=int, default=5,
-                        help="GrabCut iterations (default: 5)")
-
-    # Threshold parameters
-    parser.add_argument("--threshold", type=int, default=127,
-                        help="Threshold value (default: 127)")
+    parser.add_argument("--flood_fill", action="store_true",
+                        help="Apply flood fill to create connected regions")
+    parser.add_argument("--seed_x", type=int, default=None,
+                        help="Flood fill seed point x-coordinate (default: center)")
+    parser.add_argument("--seed_y", type=int, default=None,
+                        help="Flood fill seed point y-coordinate (default: center)")
 
     # Visualization options
     parser.add_argument("--save_mask", action="store_true",
@@ -171,17 +148,24 @@ def main():
         image = image.resize((new_w, new_h))
         print(f"Resized to: {new_w} x {new_h}")
 
-    # Generate mask automatically
-    print(f"Generating mask using {args.method} method...")
+    # Generate mask automatically using Canny edge detection
+    print("Generating mask using Canny edge detection...")
+
+    # Set seed point for flood fill if provided
+    seed_point = None
+    if args.seed_x is not None and args.seed_y is not None:
+        seed_point = (args.seed_x, args.seed_y)
+    elif args.seed_x is not None or args.seed_y is not None:
+        print("Warning: Both seed_x and seed_y must be provided. Using center point.")
+
     mask = generate_auto_mask(
         image,
-        method=args.method,
         threshold1=args.canny_low,
         threshold2=args.canny_high,
         kernel_size=args.dilate_kernel,
         iterations=args.dilate_iter,
-        margin=args.grabcut_margin,
-        threshold=args.threshold
+        flood_fill=args.flood_fill,
+        seed_point=seed_point
     ).to(device)
 
     # Count masked pixels
