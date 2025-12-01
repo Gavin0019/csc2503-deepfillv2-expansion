@@ -138,7 +138,7 @@ All dataset preparation scripts are located in the `scripts/` directory.
 
 ---
 
-### 📥 Downloading Data for Outpainting
+### Downloading Data for Outpainting
 
 Use the following script to download and prepare the Places365 subset for **outpainting**:
 
@@ -146,7 +146,7 @@ Use the following script to download and prepare the Places365 subset for **outp
 python scripts/download_places365_outpaint.py
 ```
 
-### 📥 Downloading Data for Soft-mask Inpainting
+### Downloading Data for Soft-mask Inpainting
 
 For the soft-mask inpainting experiments, run:
 
@@ -219,6 +219,35 @@ pt_places2:
   load_at_startup: True
   return_vals: [inpainted, stage1]
 ```
+
+---
+
+## User Guide
+
+### 1. Load Image
+- Click **Choose File** to upload an image.
+
+### 2. Draw Mask (Inpainting)
+- Use the brush tools on the right.
+- Adjust brush size using the circle icons.
+- Draw over regions you want the model to fill in.
+
+### 3. Outpainting Controls
+- **Expand ratio** controls how much to extend the borders.
+- **Pad top/bottom/left/right** specify exact pixel padding for asymmetric expansion.
+
+### 4. Run Model
+- **Inpaint** → fills interior masked regions  
+- **Outpaint** → expands the image canvas outward using the selected model (make sure to have outpainting weights downloaded)
+
+Results appear below the canvas.
+
+### 5. Editing Tools
+- **Undo / Redo** — revert mask strokes  
+- **Clear** — remove all mask strokes  
+- **Save mask / Save image** — export mask or result image  
+
+---
 
 ## Examples
 
