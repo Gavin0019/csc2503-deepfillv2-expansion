@@ -1,0 +1,57 @@
+# ==== Pretrained checkpoint / resume training ====
+# Start from official Places2 pretrained generator
+model_restore: /content/drive/MyDrive/CSC2503/checkpoints_soft_alpha/states.pth
+
+# ==== Dataloading ====
+dataset_path: /content/drive/MyDrive/CSC2503/data/val_10k_flat
+scan_subdirs: True          # Images can be in subfolders
+random_crop: True           # For Places-like data: crop to img_shapes
+random_horizontal_flip: False
+batch_size: 8               # Safe default on Colab; adjust upward if VRAM allows
+num_workers: 4              # >0 is fine on Colab
+
+# ==== Training / logging ====
+tb_logging: True
+log_dir: /content/drive/MyDrive/CSC2503/logs_soft_alpha      # TensorBoard logs
+checkpoint_dir: /content/drive/MyDrive/CSC2503/checkpoints_soft_alpha
+
+use_cuda_if_available: True
+random_seed: False          # options: False | <int>
+
+# Generator optimizer
+g_lr: 0.0001
+g_beta1: 0.5
+g_beta2: 0.999
+
+# Discriminator optimizer
+d_lr: 0.0001
+d_beta1: 0.5
+d_beta2: 0.999
+
+max_iters: 20000              # number of iterations (batches); increase for real runs
+
+# ==== Console / checkpoint logging ====
+viz_max_out: 10             # number of images from batch to visualize
+print_iter: 100             # write losses to console and tensorboard
+save_checkpoint_iter: 100   # overwrite last checkpoint
+save_imgs_to_tb_iter: 5000  # (optional) add image grids to tensorboard
+save_imgs_to_disc_iter: 500 # (optional) save image grids in checkpoint folder
+save_cp_backup_iter: 5000   # (optional) save checkpoint file named states_{n_iter}.pth
+
+# ==== Image shape ====
+img_shapes: [256, 256, 3]
+
+# ==== Mask options (bbox size etc.) ====
+height: 128
+width: 128
+max_delta_height: 32
+max_delta_width: 32
+vertical_margin: 0
+horizontal_margin: 0
+
+# ==== Losses ====
+gan_loss: 'hinge'           # options: 'hinge', 'ls'
+gan_loss_alpha: 1.0
+
+ae_loss: True
+l1_loss_alpha: 1.0

@@ -102,6 +102,63 @@ const DrawingPanel = (props) => {
     });
   };
 
+  const outpaintHandler = async ({
+    expandRatio,
+    padTop,
+    padBottom,
+    padLeft,
+    padRight,
+  }) => {
+    if (!selectedFile) return;
+
+    const modelsData = Array.isArray(props.modelsData) ? props.modelsData : [];
+
+    const selectedModels = modelsData
+      .filter((v) => v.is_loaded)
+      .map((v) => v.name);
+
+    if (selectedModels.length === 0) {
+      console.warn("No loaded models available for outpaint");
+      return;
+    }
+
+    const modelName = selectedModels[0]; // use first loaded model for now
+
+    const fd = new FormData();
+    fd.append("image", selectedFile, selectedFile.name);
+    fd.append("model", modelName);
+
+    // Always send all 5 fields; backend will interpret them
+    fd.append("expand_ratio", String(expandRatio ?? 0));
+    fd.append("pad_top", String(padTop ?? 0));
+    fd.append("pad_bottom", String(padBottom ?? 0));
+    fd.append("pad_left", String(padLeft ?? 0));
+    fd.append("pad_right", String(padRight ?? 0));
+
+    try {
+      const response = await fetch("/api/outpaint", {
+        method: "POST",
+        body: fd,
+      });
+
+      if (!response.ok) {
+        console.error(
+          "Outpaint request failed:",
+          response.status,
+          response.statusText
+        );
+        return;
+      }
+
+      const data = await response.json();
+      if (data && data.data) {
+        props.onOutput(data.data);
+      }
+    } catch (err) {
+      console.error("Outpaint fetch error:", err);
+    }
+  };
+
   return (
     <div className={styles["control-panel"]}>
       <div className={styles["wrapper"]}>
@@ -139,6 +196,7 @@ const DrawingPanel = (props) => {
       <ImageControl
         onFileSelected={fileSelectedHandler}
         onInpaintClick={fileUploadHandler}
+        onOutpaintClick={outpaintHandler}
         onClearClick={clearCanvas}
         onUndoClick={undoStepHandler}
         onRedoClick={redoStepHandler}

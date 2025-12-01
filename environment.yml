@@ -1,0 +1,19 @@
+name: deepfillv2_softmask
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch=2.4.1
+  - torchvision=0.19.1
+  - cudatoolkit=11.8
+  - numpy
+  - scikit-image
+  - opencv
+  - pillow
+  - pyyaml
+  - tensorboard
+  - tqdm
+  - pip
+  - pip:
+    - lpips

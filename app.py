@@ -39,6 +39,35 @@ async def inpaint(image: UploadFile,
     response_data = inpainter.inpaint(image, mask, models, size)
     return {'data': response_data}
 
+@app.post('/api/outpaint')
+async def outpaint(image: UploadFile,
+                   model: str = Form(),
+                   expand_ratio: float = Form(0.25),
+                   pad_top: int = Form(0),
+                   pad_bottom: int = Form(0),
+                   pad_left: int = Form(0),
+                   pad_right: int = Form(0)):
+    """
+    Outpaint API.
+
+    Frontend should POST a FormData with:
+      - image: file
+      - model: e.g. 'pt_places2'
+      - expand_ratio: float (optional, default 0.25)
+      - pad_top/bottom/left/right: ints (optional; used if you want explicit pads)
+    """
+
+    response_data = inpainter.outpaint(
+        image=image,
+        model_name=model,
+        expand_ratio=expand_ratio,
+        pad_top=pad_top,
+        pad_bottom=pad_bottom,
+        pad_left=pad_left,
+        pad_right=pad_right,
+    )
+    return {'data': response_data}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

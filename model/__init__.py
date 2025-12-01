@@ -1,9 +1,13 @@
 import torch
 
 def load_model(path, device='cuda'):  
-    try:  
-        gen_sd = torch.load(path)['G']
+    try:
+        if torch.cuda.is_available():
+            gen_sd = torch.load(path, map_location='cuda')['G']
+        else:
+            gen_sd = torch.load(path, map_location='cpu')['G']
     except FileNotFoundError:
+        print(f"Model file not found: {path}")
         return None
 
     if 'stage1.conv1.conv.weight' in gen_sd.keys():

@@ -10,6 +10,7 @@ import utils.misc as misc
 #from model.networks_tf import Generator, Discriminator
 from model.networks import Generator, Discriminator
 from utils.data import ImageDataset
+from utils.softmask import binary_to_soft_alpha_gaussian
 
 
 parser = argparse.ArgumentParser()
@@ -65,6 +66,13 @@ def training_loop(generator,        # generator network
         irregular_mask = misc.brush_stroke_mask(config).to(device)
         mask = torch.logical_or(irregular_mask, regular_mask).to(torch.float32)
 
+        alpha = binary_to_soft_alpha_gaussian(
+            mask,
+            kernel_size=21,   # you can tune later or move into config
+            sigma=7.0,
+            gamma=1.0,
+        )
+
         # prepare input for generator
         batch_incomplete = batch_real*(1.-mask)
         ones_x = torch.ones_like(batch_incomplete)[:, 0:1].to(device)
@@ -75,7 +83,7 @@ def training_loop(generator,        # generator network
         batch_predicted = x2
 
         # apply mask and complete image
-        batch_complete = batch_predicted*mask + batch_incomplete*(1.-mask)
+        batch_complete = batch_predicted * alpha + batch_incomplete * (1. - alpha)
 
         # D training steps:
         batch_real_mask = torch.cat(
@@ -97,10 +105,15 @@ def training_loop(generator,        # generator network
         d_optimizer.step()
 
         # G training steps:
-        losses['ae_loss1'] = config.l1_loss_alpha * \
-            torch.mean((torch.abs(batch_real - x1)))
-        losses['ae_loss2'] = config.l1_loss_alpha * \
-            torch.mean((torch.abs(batch_real - x2)))
+        # Reconstruction errors
+        recon1 = torch.abs(batch_real - x1)
+        recon2 = torch.abs(batch_real - x2)
+
+        # α has shape [B,1,H,W], recon has [B,3,H,W]; broadcast α over channels
+        weights = alpha  # if you later want interior=1, boundary<1, tweak alpha design
+
+        losses['ae_loss1'] = config.l1_loss_alpha * torch.mean(weights * recon1)
+        losses['ae_loss2'] = config.l1_loss_alpha * torch.mean(weights * recon2)
         losses['ae_loss'] = losses['ae_loss1'] + losses['ae_loss2']
 
         batch_gen = batch_complete
@@ -146,17 +159,24 @@ def training_loop(generator,        # generator network
         if config.tb_logging \
             and config.save_imgs_to_tb_iter \
             and n_iter % config.save_imgs_to_tb_iter == 0:
-            viz_images = [misc.pt_to_image(batch_complete),
-                          misc.pt_to_image(x1), misc.pt_to_image(x2)]
-            img_grids = [tv.utils.make_grid(images[:config.viz_max_out], nrow=2)
-                        for images in viz_images]
+                viz_images = [
+                    misc.pt_to_image(batch_complete),
+                    misc.pt_to_image(x1),
+                    misc.pt_to_image(x2),
+                ]
+                img_grids = [tv.utils.make_grid(images[:config.viz_max_out], nrow=2)
+                            for images in viz_images]
 
-            writer.add_image(
-                "Inpainted", img_grids[0], global_step=n_iter, dataformats="CHW")
-            writer.add_image(
-                "Stage 1", img_grids[1], global_step=n_iter, dataformats="CHW")
-            writer.add_image(
-                "Stage 2", img_grids[2], global_step=n_iter, dataformats="CHW")
+                writer.add_image("Inpainted", img_grids[0], global_step=n_iter, dataformats="CHW")
+                writer.add_image("Stage 1", img_grids[1], global_step=n_iter, dataformats="CHW")
+                writer.add_image("Stage 2", img_grids[2], global_step=n_iter, dataformats="CHW")
+
+                # NEW: visualize alpha as single-channel heatmap
+                # alpha is [B,1,H,W]; pick first sample
+                alpha_vis = alpha[:config.viz_max_out]
+                alpha_grid = tv.utils.make_grid(alpha_vis, nrow=2)
+                writer.add_image("Alpha", alpha_grid, global_step=n_iter, dataformats="CHW")
+
 
         # save example image grids to disk
         if config.save_imgs_to_disc_iter \

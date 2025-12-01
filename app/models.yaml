@@ -1,19 +1,14 @@
-tf_places2:
-  path: pretrained/states_tf_places2.pth
-  load_at_startup: True
-  return_vals: [inpainted, stage1]
-
 pt_places2:
   path: pretrained/states_pt_places2.pth
   load_at_startup: True
   return_vals: [inpainted, stage1]
 
-tf_celebahq:
-  path: pretrained/states_tf_celebahq.pth
-  load_at_startup: False
+softmask_place2:
+  path: pretrained/states_softmask_place2.pth
+  load_at_startup: True
   return_vals: [inpainted, stage1]
 
-pt_celebahq:
-  path: pretrained/states_pt_celebahq.pth
-  load_at_startup: False
+outpaitnting_places2:
+  path: pretrained/states_10000.pth
+  load_at_startup: True
   return_vals: [inpainted, stage1]

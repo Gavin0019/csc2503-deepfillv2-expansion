@@ -57,34 +57,57 @@ def infer_deepfill(generator,
                    image,
                    mask,
                    return_vals=['inpainted', 'stage1']):
+    """
+    image: torch.Tensor [3,H,W] in [0,1]
+    mask:  torch.Tensor [1,H,W] in {0,1} (1 = hole)
+    """
 
     _, h, w = image.shape
     grid = 8
 
-    image = image[:3, :h//grid*grid, :w//grid*grid].unsqueeze(0)
-    mask = mask[0:1, :h//grid*grid, :w//grid*grid].unsqueeze(0)
+    # Make H,W divisible by 8
+    H = h // grid * grid
+    W = w // grid * grid
 
-    image = (image*2 - 1.)  # map image values to [-1, 1] range
-    # 1.: masked 0.: unmasked
+    image = image[:3, :H, :W].unsqueeze(0)        # [1,3,H,W]
+    mask = mask[0:1, :H, :W].unsqueeze(0)         # [1,1,H,W]
+
+    # Map image values to [-1, 1]
+    image = image * 2.0 - 1.0
+
+    # Binary mask: 1 = hole, 0 = context
     mask = (mask > 0.).to(dtype=torch.float32)
 
-    image_masked = image * (1.-mask)  # mask image
+    # Masked image input
+    image_masked = image * (1.0 - mask)
 
-    ones_x = torch.ones_like(image_masked)[:, 0:1, :, :]  # sketch channel
-    x = torch.cat([image_masked, ones_x, ones_x*mask],
-                  dim=1)  # concatenate channels
+    # Generator input: [masked_img, ones, ones*mask]
+    ones_x = torch.ones_like(image_masked)[:, 0:1, :, :]
+    x = torch.cat([image_masked, ones_x, ones_x * mask], dim=1)
 
+    # Forward pass
     x_stage1, x_stage2 = generator(x, mask)
 
-    image_compl = image * (1.-mask) + x_stage2 * mask
+    # ---- SOFT MASK COMPOSITING ----
+    # Build alpha from binary mask (same design as training)
+    alpha = binary_to_soft_alpha_gaussian(
+        mask,
+        kernel_size=21,   # keep in sync with training
+        sigma=7.0,
+        gamma=1.0,
+    )
+
+    # Soft composite: use alpha instead of hard mask
+    image_compl = image * (1.0 - alpha) + x_stage2 * alpha
 
     output = []
     for return_val in return_vals:
-        if return_val.lower() == 'stage1':
+        name = return_val.lower()
+        if name == 'stage1':
             output.append(output_to_img(x_stage1))
-        elif return_val.lower() == 'stage2':
+        elif name == 'stage2':
             output.append(output_to_img(x_stage2))
-        elif return_val.lower() == 'inpainted':
+        elif name == 'inpainted':
             output.append(output_to_img(image_compl))
         else:
             print(f'Invalid return value: {return_val}')
