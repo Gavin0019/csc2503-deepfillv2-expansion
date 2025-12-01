@@ -266,9 +266,7 @@ Input → Masked → Outpainted:
 
 | Input | Masked | Outpainted |
 |-------|--------|-----------|
-| <img src="images/input.jpg" width="250"/> | <img src="images/masked.jpg" width="250"/> | <img src="images/outpainted.jpg" width="250"/> |
-
-*Add your outpainting examples here*
+| <img src="images/input.jpg" width="250"/> | <img src="images/masked.jpg" width="250"/> | <img src="images/outpainted.png" width="250"/> |
 
 ## Citation
 
